@@ -19,6 +19,7 @@ import (
 	"github.com/senorprogrammer/wtf/cryptoexchanges/bittrex"
 	"github.com/senorprogrammer/wtf/cryptoexchanges/blockfolio"
 	"github.com/senorprogrammer/wtf/cryptoexchanges/cryptolive"
+	"github.com/senorprogrammer/wtf/deaddrop"
 	"github.com/senorprogrammer/wtf/flags"
 	"github.com/senorprogrammer/wtf/gcal"
 	"github.com/senorprogrammer/wtf/git"
@@ -31,6 +32,7 @@ import (
 	"github.com/senorprogrammer/wtf/jira"
 	"github.com/senorprogrammer/wtf/logger"
 	"github.com/senorprogrammer/wtf/newrelic"
+	"github.com/senorprogrammer/wtf/oanda"
 	"github.com/senorprogrammer/wtf/opsgenie"
 	"github.com/senorprogrammer/wtf/power"
 	"github.com/senorprogrammer/wtf/security"
@@ -175,6 +177,8 @@ func addWidget(app *tview.Application, pages *tview.Pages, widgetName string) {
 		Widgets = append(Widgets, cmdrunner.NewWidget())
 	case "cryptolive":
 		Widgets = append(Widgets, cryptolive.NewWidget())
+	case "deaddrop":
+		Widgets = append(Widgets, deaddrop.NewWidget())
 	case "gcal":
 		Widgets = append(Widgets, gcal.NewWidget())
 	case "git":
@@ -197,6 +201,8 @@ func addWidget(app *tview.Application, pages *tview.Pages, widgetName string) {
 		Widgets = append(Widgets, logger.NewWidget())
 	case "newrelic":
 		Widgets = append(Widgets, newrelic.NewWidget())
+	case "oanda":
+		Widgets = append(Widgets, oanda.NewWidget())
 	case "opsgenie":
 		Widgets = append(Widgets, opsgenie.NewWidget())
 	case "power":
