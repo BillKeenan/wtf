@@ -21,7 +21,7 @@ type Widget struct {
 
 func NewWidget() *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Logs ", "logging", true),
+		TextWidget: wtf.NewTextWidget(" Logs ", "logger", true),
 
 		filePath: logFilePath(),
 	}
@@ -52,10 +52,10 @@ func (widget *Widget) Refresh() {
 	}
 
 	widget.UpdateRefreshedAt()
-	widget.View.SetTitle(fmt.Sprintf("%s", widget.Name))
+	widget.View.SetTitle(widget.Name)
 
 	logLines := widget.tailFile()
-	widget.View.SetText(fmt.Sprintf("%s", widget.contentFrom(logLines)))
+	widget.View.SetText(widget.contentFrom(logLines))
 }
 
 /* -------------------- Unexported Functions -------------------- */
@@ -89,7 +89,7 @@ func logFilePath() string {
 		return ""
 	}
 
-	return filepath.Join(dir, ".wtf", "log.txt")
+	return filepath.Join(dir, ".config", "wtf", "log.txt")
 }
 
 func (widget *Widget) tailFile() []string {
