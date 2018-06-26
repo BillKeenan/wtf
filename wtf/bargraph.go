@@ -15,10 +15,11 @@ type BarGraph struct {
 	focusable bool
 
 	Name        string
+	starChar    string
 	RefreshedAt time.Time
 	RefreshInt  int
 	View        *tview.TextView
-
+	starsCount  int
 	Position
 
 	Data [][2]int64
@@ -27,9 +28,10 @@ type BarGraph struct {
 // NewBarGraph initialize your fancy new graph
 func NewBarGraph(name string, configKey string, focusable bool) BarGraph {
 	widget := BarGraph{
-		enabled:   Config.UBool(fmt.Sprintf("wtf.mods.%s.enabled", configKey), false),
-		focusable: focusable,
-
+		enabled:    Config.UBool(fmt.Sprintf("wtf.mods.%s.enabled", configKey), false),
+		focusable:  focusable,
+		starChar:   Config.UString(fmt.Sprintf("wtf.mods.%s.starChar", configKey), "⭐️"),
+		starsCount: Config.UInt(fmt.Sprintf("wtf.mods.%s.stars", configKey), 20),
 		Name:       Config.UString(fmt.Sprintf("wtf.mods.%s.title", configKey), name),
 		RefreshInt: Config.UInt(fmt.Sprintf("wtf.mods.%s.refreshInterval", configKey)),
 	}
@@ -99,7 +101,7 @@ func (widget *BarGraph) addView() {
 
 // BuildBars will build a string of * to represent your data of [time][value]
 // time should be passed as a int64
-func (widget *BarGraph) BuildBars(maxStars int, starChar string, data [][2]int64) {
+func (widget *BarGraph) BuildBars(data [][2]int64) {
 
 	var buffer bytes.Buffer
 
@@ -136,7 +138,7 @@ func (widget *BarGraph) BuildBars(maxStars int, starChar string, data [][2]int64
 	}
 
 	// each number = how many stars?
-	var starRatio = float64(maxStars) / float64((maxValue - minValue))
+	var starRatio = float64(widget.starsCount) / float64((maxValue - minValue))
 
 	//build the stars
 	for i := range data {
@@ -149,7 +151,7 @@ func (widget *BarGraph) BuildBars(maxStars int, starChar string, data [][2]int64
 			starCount = 1
 		}
 		//build the actual string
-		var stars = strings.Repeat(starChar, starCount)
+		var stars = strings.Repeat(widget.starChar, starCount)
 
 		//parse the time
 		var t = time.Unix(int64(data[i][1]/1000), 0)

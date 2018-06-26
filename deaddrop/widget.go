@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/olebedev/config"
 	"github.com/senorprogrammer/wtf/logger"
 	"github.com/senorprogrammer/wtf/wtf"
 )
@@ -16,6 +17,11 @@ import (
 var started = false
 var baseURL = "https://min-api.cryptocompare.com/data/price"
 var ok = true
+var starsCount = 0
+
+const configKey = "deaddrop"
+
+var Config *config.Config
 
 // Widget define wtf widget to register widget later
 type Widget struct {
@@ -28,7 +34,7 @@ type Widget struct {
 // NewWidget Make new instance of widget
 func NewWidget() *Widget {
 	widget := Widget{
-		BarGraph: wtf.NewBarGraph(" Dead Drop ", "deaddrop", false),
+		BarGraph: wtf.NewBarGraph(" Dead Drop ", configKey, false),
 	}
 
 	widget.View.SetWrap(true)
@@ -98,7 +104,7 @@ func GetDrops(widget *Widget) {
 
 	logger.Log("loaded dead data")
 	widget.View.Clear()
-	widget.BuildBars(20, "🌟", stats[:])
+	widget.BuildBars(stats[:])
 
 }
 
