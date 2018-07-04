@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/olebedev/config"
 	"github.com/senorprogrammer/wtf/logger"
 	"github.com/senorprogrammer/wtf/wtf"
 )
@@ -20,8 +19,6 @@ var ok = true
 var starsCount = 0
 
 const configKey = "deaddrop"
-
-var Config *config.Config
 
 // Widget define wtf widget to register widget later
 type Widget struct {
@@ -132,4 +129,5 @@ func (widget *Widget) Refresh() {
 
 func display(widget *Widget) {
 	GetDrops(widget)
+	widget.View.SetTitle("☠️ " + widget.Name)
 }
