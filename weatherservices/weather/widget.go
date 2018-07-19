@@ -48,8 +48,8 @@ func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 	}
 
 	if widget.APIKey == "" {
-		logger.Log("loading weather WTF_OWM_API_KEY key from config")
-		widget.APIKey = wtf.Config.UString(fmt.Sprintf("wtf.mods.%s.WTF_OWM_API_KEY", configKey), "")
+		logger.Log("loading weather API key from config")
+		widget.APIKey = wtf.Config.UString(fmt.Sprintf("wtf.mods.%s.apiKey", configKey), "")
 	}
 
 	widget.View.SetInputCapture(widget.keyboardIntercept)
