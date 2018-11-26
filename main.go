@@ -17,6 +17,7 @@ import (
 	"github.com/senorprogrammer/wtf/circleci"
 	"github.com/senorprogrammer/wtf/clocks"
 	"github.com/senorprogrammer/wtf/cmdrunner"
+	"github.com/senorprogrammer/wtf/confluence"
 	"github.com/senorprogrammer/wtf/cryptoexchanges/bittrex"
 	"github.com/senorprogrammer/wtf/cryptoexchanges/blockfolio"
 	"github.com/senorprogrammer/wtf/cryptoexchanges/cryptolive"
@@ -178,6 +179,8 @@ func addWidget(app *tview.Application, pages *tview.Pages, widgetName string) {
 		widgets = append(widgets, circleci.NewWidget(app))
 	case "clocks":
 		widgets = append(widgets, clocks.NewWidget(app))
+	case "confluence":
+		widgets = append(widgets, confluence.NewWidget(app))
 	case "cmdrunner":
 		widgets = append(widgets, cmdrunner.NewWidget(app))
 	case "cryptolive":
