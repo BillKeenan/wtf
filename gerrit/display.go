@@ -10,11 +10,11 @@ func (widget *Widget) display() {
 
 	project := widget.currentGerritProject()
 	if project == nil {
-		fmt.Fprintf(widget.View, "%s", " Gerrit project data is unavailable (1)")
+		widget.View.SetText(fmt.Sprintf("%s", " Gerrit project data is unavailable (1)"))
 		return
 	}
 
-	widget.View.SetTitle(fmt.Sprintf("%s- %s", widget.Name, widget.title(project)))
+	widget.View.SetTitle(widget.ContextualTitle(fmt.Sprintf("%s- %s", widget.Name, widget.title(project))))
 
 	str := wtf.SigilStr(len(widget.GerritProjects), widget.Idx, widget.View) + "\n"
 	str = str + " [red]Stats[white]\n"
@@ -29,31 +29,27 @@ func (widget *Widget) display() {
 	widget.View.SetText(str)
 }
 
-func (widget *Widget) displayMyOutgoingReviews(project *GerritProject, username string) string {
-	ors := project.myOutgoingReviews(username)
-
-	if len(ors) == 0 {
+func (widget *Widget) displayMyIncomingReviews(project *GerritProject, username string) string {
+	if len(project.IncomingReviews) == 0 {
 		return " [grey]none[white]\n"
 	}
 
 	str := ""
-	for _, r := range ors {
-		str = str + fmt.Sprintf(" [green]%4s[white] %s\n", r.ChangeID, r.Subject)
+	for idx, r := range project.IncomingReviews {
+		str = str + fmt.Sprintf(" [%s] [green]%d[white] [%s] %s\n", widget.rowColor(idx), r.Number, widget.rowColor(idx), r.Subject)
 	}
 
 	return str
 }
 
-func (widget *Widget) displayMyIncomingReviews(project *GerritProject, username string) string {
-	irs := project.myIncomingReviews(username)
-
-	if len(irs) == 0 {
+func (widget *Widget) displayMyOutgoingReviews(project *GerritProject, username string) string {
+	if len(project.OutgoingReviews) == 0 {
 		return " [grey]none[white]\n"
 	}
 
 	str := ""
-	for _, r := range irs {
-		str = str + fmt.Sprintf(" [green]%4s[white] %s\n", r.ChangeID, r.Subject)
+	for idx, r := range project.OutgoingReviews {
+		str = str + fmt.Sprintf(" [%s] [green]%d[white] [%s] %s\n", widget.rowColor(idx+len(project.IncomingReviews)), r.Number, widget.rowColor(idx+len(project.IncomingReviews)), r.Subject)
 	}
 
 	return str
@@ -62,10 +58,17 @@ func (widget *Widget) displayMyIncomingReviews(project *GerritProject, username 
 func (widget *Widget) displayStats(project *GerritProject) string {
 	str := fmt.Sprintf(
 		" Reviews: %d\n",
-		project.ReviewCount(),
+		project.ReviewCount,
 	)
 
 	return str
+}
+
+func (widget *Widget) rowColor(index int) string {
+	if widget.View.HasFocus() && (index == widget.selected) {
+		return wtf.DefaultFocussedRowColor()
+	}
+	return wtf.RowColor("gerrit", index)
 }
 
 func (widget *Widget) title(project *GerritProject) string {

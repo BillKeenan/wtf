@@ -1,6 +1,7 @@
 language: go
 go:
-  - "1.10"
+  - "1.10.x"
+  - "1.11.x"
 sudo: false
 before_install:
   # Make sure travis builds work for forks
@@ -9,4 +10,4 @@ before_install:
   - export TRAVIS_BUILD_DIR=$HOME/gopath/src/github.com/senorprogrammer/wtf
   - cd $HOME/gopath/src/github.com/senorprogrammer/wtf
 
-script: go get ./... && go get github.com/go-test/deep && go test -v github.com/senorprogrammer/wtf/wtftests/...
+script: go get ./... && go get github.com/go-test/deep && go test -v github.com/senorprogrammer/wtf/wtf_tests/...

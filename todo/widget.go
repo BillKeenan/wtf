@@ -36,6 +36,7 @@ const modalWidth = 80
 const modalHeight = 7
 
 type Widget struct {
+	wtf.HelpfulWidget
 	wtf.TextWidget
 
 	app      *tview.Application
@@ -46,7 +47,8 @@ type Widget struct {
 
 func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Todo ", "todo", true),
+		HelpfulWidget: wtf.NewHelpfulWidget(app, pages, HelpText),
+		TextWidget:    wtf.NewTextWidget(app, "Todo", "todo", true),
 
 		app:      app,
 		filePath: wtf.Config.UString("wtf.mods.todo.filename"),
@@ -55,6 +57,10 @@ func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 	}
 
 	widget.init()
+	widget.HelpfulWidget.SetView(widget.View)
+
+	widget.View.SetScrollable(true)
+	widget.View.SetRegions(true)
 	widget.View.SetInputCapture(widget.keyboardIntercept)
 
 	return &widget
@@ -63,9 +69,10 @@ func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 /* -------------------- Exported Functions -------------------- */
 
 func (widget *Widget) Refresh() {
-	widget.UpdateRefreshedAt()
 	widget.load()
 	widget.display()
+
+	widget.View.SetTitle(widget.ContextualTitle(widget.Name))
 }
 
 func (widget *Widget) SetList(newList checklist.Checklist) {
@@ -112,7 +119,7 @@ func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 		widget.display()
 		return nil
 	case "/":
-		widget.showHelp()
+		widget.ShowHelp()
 		return nil
 	case "j":
 		// Select the next item down
@@ -130,7 +137,8 @@ func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 		return nil
 	case "o":
 		// Open the file
-		wtf.OpenFile(widget.filePath)
+		confDir, _ := cfg.ConfigDir()
+		wtf.OpenFile(fmt.Sprintf("%s/%s", confDir, widget.filePath))
 		return nil
 	}
 
@@ -187,7 +195,7 @@ func (widget *Widget) load() {
 }
 
 func (widget *Widget) newItem() {
-	form := widget.modalForm("New:", "")
+	form := widget.modalForm("New Todo:", "")
 
 	saveFctn := func() {
 		text := form.GetFormItem(0).(*tview.InputField).GetText()
@@ -217,18 +225,6 @@ func (widget *Widget) persist() {
 	}
 }
 
-func (widget *Widget) showHelp() {
-	closeFunc := func() {
-		widget.pages.RemovePage("help")
-		widget.app.SetFocus(widget.View)
-	}
-
-	modal := wtf.NewBillboardModal(HelpText, closeFunc)
-
-	widget.pages.AddPage("help", modal, false, true)
-	widget.app.SetFocus(modal)
-}
-
 /* -------------------- Modal Form -------------------- */
 
 func (widget *Widget) addButtons(form *tview.Form, saveFctn func()) {
@@ -255,12 +251,15 @@ func (widget *Widget) modalFocus(form *tview.Form) {
 	frame := widget.modalFrame(form)
 	widget.pages.AddPage("modal", frame, false, true)
 	widget.app.SetFocus(frame)
+	widget.app.Draw()
 }
 
 func (widget *Widget) modalForm(lbl, text string) *tview.Form {
 	form := tview.NewForm().
-		SetButtonsAlign(tview.AlignCenter).
-		SetButtonTextColor(tview.Styles.PrimaryTextColor)
+		SetFieldBackgroundColor(wtf.ColorFor(wtf.Config.UString("wtf.colors.background", "black")))
+
+	form.SetButtonsAlign(tview.AlignCenter).
+		SetButtonTextColor(wtf.ColorFor(wtf.Config.UString("wtf.colors.text", "white")))
 
 	form.AddInputField(lbl, text, 60, nil, nil)
 

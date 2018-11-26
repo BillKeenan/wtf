@@ -7,7 +7,7 @@ import (
 )
 
 const HelpText = `
-  Keyboard commands for Github:
+  Keyboard commands for GitHub:
 
     /: Show/hide this help window
     h: Previous git repository
@@ -16,13 +16,13 @@ const HelpText = `
 
     arrow left:  Previous git repository
     arrow right: Next git repository
+
+    return: Open the selected repository in a browser
 `
 
 type Widget struct {
+	wtf.HelpfulWidget
 	wtf.TextWidget
-
-	app   *tview.Application
-	pages *tview.Pages
 
 	GithubRepos []*GithubRepo
 	Idx         int
@@ -30,15 +30,15 @@ type Widget struct {
 
 func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Github ", "github", true),
+		HelpfulWidget: wtf.NewHelpfulWidget(app, pages, HelpText),
+		TextWidget:    wtf.NewTextWidget(app, "GitHub", "github", true),
 
-		app:   app,
-		Idx:   0,
-		pages: pages,
+		Idx: 0,
 	}
 
 	widget.GithubRepos = widget.buildRepoCollection(wtf.Config.UMap("wtf.mods.github.repositories"))
 
+	widget.HelpfulWidget.SetView(widget.View)
 	widget.View.SetInputCapture(widget.keyboardIntercept)
 
 	return &widget
@@ -51,7 +51,6 @@ func (widget *Widget) Refresh() {
 		repo.Refresh()
 	}
 
-	widget.UpdateRefreshedAt()
 	widget.display()
 }
 
@@ -101,7 +100,7 @@ func (widget *Widget) currentGithubRepo() *GithubRepo {
 func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	switch string(event.Rune()) {
 	case "/":
-		widget.showHelp()
+		widget.ShowHelp()
 		return nil
 	case "h":
 		widget.Prev()
@@ -115,6 +114,9 @@ func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch event.Key() {
+	case tcell.KeyEnter:
+		widget.openRepo()
+		return nil
 	case tcell.KeyLeft:
 		widget.Prev()
 		return nil
@@ -126,14 +128,10 @@ func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	}
 }
 
-func (widget *Widget) showHelp() {
-	closeFunc := func() {
-		widget.pages.RemovePage("help")
-		widget.app.SetFocus(widget.View)
+func (widget *Widget) openRepo() {
+	repo := widget.currentGithubRepo()
+
+	if repo != nil {
+		repo.Open()
 	}
-
-	modal := wtf.NewBillboardModal(HelpText, closeFunc)
-
-	widget.pages.AddPage("help", modal, false, true)
-	widget.app.SetFocus(modal)
 }

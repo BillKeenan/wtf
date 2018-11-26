@@ -15,10 +15,10 @@ func (widget *Widget) display() {
 		return
 	}
 
-	title := fmt.Sprintf("[green]%s[white]\n", repoData.Repository)
-	widget.View.SetTitle(fmt.Sprintf("%s- %s", widget.Name, title))
+	title := fmt.Sprintf("%s - [green]%s[white]", widget.Name, repoData.Repository)
+	widget.View.SetTitle(widget.ContextualTitle(title))
 
-	str := wtf.SigilStr(len(widget.Data), widget.Idx, widget.View) + "\n"
+	str := wtf.SigilStr(len(widget.GitRepos), widget.Idx, widget.View) + "\n"
 	str = str + " [red]Branch[white]\n"
 	str = str + fmt.Sprintf(" %s", repoData.Branch)
 	str = str + "\n"

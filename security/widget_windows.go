@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/wtf"
 )
 
@@ -13,9 +14,9 @@ type Widget struct {
 	wtf.TextWidget
 }
 
-func NewWidget() *Widget {
+func NewWidget(app *tview.Application) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Security ", "security", false),
+		TextWidget: wtf.NewTextWidget(app, "Security", "security", false),
 	}
 
 	return &widget
@@ -31,7 +32,6 @@ func (widget *Widget) Refresh() {
 	data := NewSecurityData()
 	data.Fetch()
 
-	widget.UpdateRefreshedAt()
 	widget.View.SetText(widget.contentFrom(data))
 }
 

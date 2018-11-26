@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/logger"
 	"github.com/senorprogrammer/wtf/wtf"
 )
@@ -28,9 +29,9 @@ type Widget struct {
 	updateInterval int
 }
 
-func NewWidget() *Widget {
+func NewWidget(app *tview.Application) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Oanda ", "oanda", true),
+		TextWidget: wtf.NewTextWidget(app, " Oanda ", "oanda", true),
 	}
 
 	widget.View.SetWrap(true)
@@ -45,8 +46,6 @@ func (widget *Widget) Refresh() {
 	if widget.Disabled() {
 		return
 	}
-
-	widget.UpdateRefreshedAt()
 
 	display(widget)
 }

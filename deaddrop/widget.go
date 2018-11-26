@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/logger"
 	"github.com/senorprogrammer/wtf/wtf"
 )
@@ -29,7 +30,7 @@ type Widget struct {
 }
 
 // NewWidget Make new instance of widget
-func NewWidget() *Widget {
+func NewWidget(app *tview.Application) *Widget {
 	widget := Widget{
 		BarGraph: wtf.NewBarGraph(" Dead Drop ", configKey, false),
 	}
@@ -111,8 +112,6 @@ func (widget *Widget) Refresh() {
 	if widget.Disabled() {
 		return
 	}
-
-	widget.UpdateRefreshedAt()
 
 	if !ok {
 		widget.View.SetText(

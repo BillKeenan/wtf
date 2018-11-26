@@ -2,6 +2,8 @@ package circleci
 
 import (
 	"fmt"
+
+	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/wtf"
 )
 
@@ -9,9 +11,9 @@ type Widget struct {
 	wtf.TextWidget
 }
 
-func NewWidget() *Widget {
+func NewWidget(app *tview.Application) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" CircleCI ", "circleci", false),
+		TextWidget: wtf.NewTextWidget(app, "CircleCI", "circleci", false),
 	}
 
 	return &widget
@@ -25,8 +27,6 @@ func (widget *Widget) Refresh() {
 	}
 
 	builds, err := BuildsFor()
-
-	widget.UpdateRefreshedAt()
 
 	widget.View.SetTitle(fmt.Sprintf("%s - Builds", widget.Name))
 

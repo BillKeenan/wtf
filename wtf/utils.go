@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	//"sync"
 
 	"github.com/rivo/tview"
 )
@@ -24,6 +25,20 @@ func CenterText(str string, width int) string {
 	}
 
 	return fmt.Sprintf("%[1]*s", -width, fmt.Sprintf("%[1]*s", (width+len(str))/2, str))
+}
+
+func DefaultFocussedRowColor() string {
+	foreColor := Config.UString("wtf.colors.highlight.fore", "black")
+	backColor := Config.UString("wtf.colors.highlight.back", "orange")
+
+	return fmt.Sprintf("%s:%s", foreColor, backColor)
+}
+
+func DefaultRowColor() string {
+	foreColor := Config.UString("wtf.colors.foreground", "white")
+	backColor := Config.UString("wtf.colors.background", "black")
+
+	return fmt.Sprintf("%s:%s", foreColor, backColor)
 }
 
 func ExecuteCommand(cmd *exec.Cmd) string {
@@ -81,7 +96,8 @@ func NamesFromEmails(emails []string) []string {
 // OpenFile opens the file defined in `path` via the operating system
 func OpenFile(path string) {
 	filePath, _ := ExpandHomeDir(path)
-	cmd := exec.Command("open", filePath)
+	openFileUtil := Config.UString("wtf.openFileUtil", "open")
+	cmd := exec.Command(openFileUtil, filePath)
 
 	ExecuteCommand(cmd)
 }
@@ -108,25 +124,29 @@ func ReadFileBytes(filePath string) ([]byte, error) {
 }
 
 func RightAlignFormat(view *tview.TextView) string {
+	//mutex := &sync.Mutex{}
+	//mutex.Lock()
 	_, _, w, _ := view.GetInnerRect()
+	//mutex.Unlock()
+
 	return fmt.Sprintf("%%%ds", w-1)
 }
 
 func RowColor(module string, idx int) string {
-	evenKey := fmt.Sprintf("wtf.mods.%s.colors.row.even", module)
-	oddKey := fmt.Sprintf("wtf.mods.%s.colors.row.odd", module)
+	evenKey := fmt.Sprintf("wtf.mods.%s.colors.rows.even", module)
+	oddKey := fmt.Sprintf("wtf.mods.%s.colors.rows.odd", module)
 
 	if idx%2 == 0 {
 		return Config.UString(evenKey, "white")
-	} else {
-		return Config.UString(oddKey, "lightblue")
 	}
+
+	return Config.UString(oddKey, "lightblue")
 }
 
 func SigilStr(len, pos int, view *tview.TextView) string {
 	sigils := ""
 
-	if len > 0 {
+	if len > 1 {
 		sigils = strings.Repeat(Config.UString("wtf.paging.pageSigil", "*"), pos)
 		sigils = sigils + Config.UString("wtf.paging.selectedSigil", "_")
 		sigils = sigils + strings.Repeat(Config.UString("wtf.paging.pageSigil", "*"), len-1-pos)
@@ -141,6 +161,7 @@ func SigilStr(len, pos int, view *tview.TextView) string {
 
 func ToInts(slice []interface{}) []int {
 	results := []int{}
+
 	for _, val := range slice {
 		results = append(results, val.(int))
 	}
@@ -150,6 +171,7 @@ func ToInts(slice []interface{}) []int {
 
 func ToStrs(slice []interface{}) []string {
 	results := []string{}
+
 	for _, val := range slice {
 		results = append(results, val.(string))
 	}

@@ -3,6 +3,7 @@ package security
 import (
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/senorprogrammer/wtf/wtf"
 )
@@ -19,6 +20,8 @@ func WifiEncryption() string {
 		return wifiEncryptionLinux()
 	case "darwin":
 		return wifiEncryptionMacOS()
+	case "windows":
+		return wifiEncryptionWindows()
 	default:
 		return ""
 	}
@@ -30,6 +33,8 @@ func WifiName() string {
 		return wifiNameLinux()
 	case "darwin":
 		return wifiNameMacOS()
+	case "windows":
+		return wifiNameWindows()
 	default:
 		return ""
 	}
@@ -78,7 +83,39 @@ func wifiNameMacOS() string {
 func matchStr(data [][]string) string {
 	if len(data) <= 1 {
 		return ""
-	} else {
-		return data[1][1]
 	}
+
+	return data[1][1]
+}
+
+//Windows
+func wifiEncryptionWindows() string {
+	return parseWlanNetsh("Authentication")
+}
+
+func wifiNameWindows() string {
+	return parseWlanNetsh("SSID")
+}
+
+func parseWlanNetsh(target string) string {
+	cmd := exec.Command("netsh.exe", "wlan", "show", "interfaces")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	splits := strings.Split(string(out), "\n")
+	var words []string
+	for _, line := range splits {
+		token := strings.Split(string(line), ":")
+		for _, word := range token {
+			words = append(words, strings.TrimSpace(word))
+		}
+	}
+	for i, token := range words {
+		switch token {
+		case target:
+			return words[i+1]
+		}
+	}
+	return "N/A"
 }

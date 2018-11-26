@@ -10,16 +10,19 @@ import (
 	"github.com/senorprogrammer/wtf/wtf"
 )
 
-const CONFIG_DIR_V1 = "~/.wtf/"
-const CONFIG_DIR_V2 = "~/.config/wtf/"
+// ConfigDirV1 defines the path to the first version of configuration. Do not use this
+const ConfigDirV1 = "~/.wtf/"
+
+// ConfigDirV2 defines the path to the second version of the configuration. Use this.
+const ConfigDirV2 = "~/.config/wtf/"
 
 /* -------------------- Config Migration -------------------- */
 
 // MigrateOldConfig copies any existing configuration from the old location
 // to the new, XDG-compatible location
 func MigrateOldConfig() {
-	srcDir, _ := wtf.ExpandHomeDir(CONFIG_DIR_V1)
-	destDir, _ := wtf.ExpandHomeDir(CONFIG_DIR_V2)
+	srcDir, _ := wtf.ExpandHomeDir(ConfigDirV1)
+	destDir, _ := wtf.ExpandHomeDir(ConfigDirV2)
 
 	// If the old config directory doesn't exist, do not move
 	if _, err := os.Stat(srcDir); os.IsNotExist(err) {
@@ -52,7 +55,7 @@ func MigrateOldConfig() {
 
 // ConfigDir returns the absolute path to the configuration directory
 func ConfigDir() (string, error) {
-	configDir, err := wtf.ExpandHomeDir(CONFIG_DIR_V2)
+	configDir, err := wtf.ExpandHomeDir(ConfigDirV2)
 	if err != nil {
 		return "", err
 	}
@@ -124,7 +127,7 @@ func LoadConfigFile(filePath string) *config.Config {
 
 	cfg, err := config.ParseYamlFile(absPath)
 	if err != nil {
-		fmt.Println("\n\n\033[1m ERROR:\033[0m Could not load '\033[0;33mconfig.yml\033[0m'.\n Please add a \033[0;33mconfig.yml\033[0m file to your \033[0;33m~/.wtf\033[0m directory.\n See \033[1;34mhttps://github.com/senorprogrammer/wtf\033[0m for details.")
+		fmt.Println("\n\n\033[1m ERROR:\033[0m Could not load '\033[0;33mconfig.yml\033[0m'.\n Please add a \033[0;33mconfig.yml\033[0m file to your \033[0;33m~/.config/wtf\033[0m directory.\n See \033[1;34mhttps://github.com/senorprogrammer/wtf\033[0m for details.")
 		fmt.Printf(" %s\n", err.Error())
 		os.Exit(1)
 	}

@@ -1,13 +1,11 @@
 package weather
 
 import (
-	"fmt"
 	"os"
 
 	owm "github.com/briandowns/openweathermap"
 	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
-	"github.com/senorprogrammer/wtf/logger"
 	"github.com/senorprogrammer/wtf/wtf"
 )
 
@@ -24,10 +22,8 @@ const HelpText = `
 
 // Widget is the container for weather data.
 type Widget struct {
+	wtf.HelpfulWidget
 	wtf.TextWidget
-
-	app   *tview.Application
-	pages *tview.Pages
 
 	APIKey string
 	Data   []*owm.CurrentWeatherData
@@ -38,20 +34,15 @@ type Widget struct {
 func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 	configKey := "weather"
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Weather ", configKey, true),
+		HelpfulWidget: wtf.NewHelpfulWidget(app, pages, HelpText),
+		TextWidget:    wtf.NewTextWidget(app, "Weather", configKey, true),
 
-		app:   app,
-		pages: pages,
-
-		APIKey: os.Getenv("WTF_OWM_API_KEY"),
-		Idx:    0,
+		Idx: 0,
 	}
 
-	if widget.APIKey == "" {
-		logger.Log("loading weather API key from config")
-		widget.APIKey = wtf.Config.UString(fmt.Sprintf("wtf.mods.%s.apiKey", configKey), "")
-	}
+	widget.loadAPICredentials()
 
+	widget.HelpfulWidget.SetView(widget.View)
 	widget.View.SetInputCapture(widget.keyboardIntercept)
 
 	return &widget
@@ -82,7 +73,6 @@ func (widget *Widget) Refresh() {
 		widget.Data = widget.Fetch(wtf.ToInts(wtf.Config.UList("wtf.mods.weather.cityids", widget.defaultCityCodes())))
 	}
 
-	widget.UpdateRefreshedAt()
 	widget.display()
 }
 
@@ -163,80 +153,10 @@ func (widget *Widget) defaultCityCodes() []interface{} {
 	return defaults
 }
 
-// icon returns an emoji for the current weather
-// src: https://github.com/chubin/wttr.in/blob/master/share/translations/en.txt
-// Note: these only work for English weather status. Sorry about that
-//
-// FIXME: Move these into a configuration file so they can be changed without a compile
-func (widget *Widget) icon(data *owm.CurrentWeatherData) string {
-	var icon string
-
-	if len(data.Weather) == 0 {
-		return ""
-	}
-
-	switch data.Weather[0].Description {
-	case "broken clouds":
-		icon = "☁️"
-	case "clear":
-		icon = "☀️"
-	case "clear sky":
-		icon = "☀️"
-	case "cloudy":
-		icon = "⛅️"
-	case "few clouds":
-		icon = "🌤"
-	case "fog":
-		icon = "🌫"
-	case "haze":
-		icon = "🌫"
-	case "heavy intensity rain":
-		icon = "💦"
-	case "heavy rain":
-		icon = "💦"
-	case "heavy snow":
-		icon = "⛄️"
-	case "light intensity shower rain":
-		icon = "☔️"
-	case "light rain":
-		icon = "🌦"
-	case "light shower snow":
-		icon = "🌦⛄️"
-	case "light snow":
-		icon = "🌨"
-	case "mist":
-		icon = "🌬"
-	case "moderate rain":
-		icon = "🌧"
-	case "moderate snow":
-		icon = "🌨"
-	case "overcast":
-		icon = "🌥"
-	case "overcast clouds":
-		icon = "🌥"
-	case "partly cloudy":
-		icon = "🌤"
-	case "scattered clouds":
-		icon = "☁️"
-	case "shower rain":
-		icon = "☔️"
-	case "snow":
-		icon = "❄️"
-	case "sunny":
-		icon = "☀️"
-	case "thunderstorm":
-		icon = "⛈"
-	default:
-		icon = "💥"
-	}
-
-	return icon
-}
-
 func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	switch string(event.Rune()) {
 	case "/":
-		widget.showHelp()
+		widget.ShowHelp()
 		return nil
 	case "h":
 		widget.Prev()
@@ -258,14 +178,11 @@ func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	}
 }
 
-func (widget *Widget) showHelp() {
-	closeFunc := func() {
-		widget.pages.RemovePage("help")
-		widget.app.SetFocus(widget.View)
-	}
-
-	modal := wtf.NewBillboardModal(HelpText, closeFunc)
-
-	widget.pages.AddPage("help", modal, false, true)
-	widget.app.SetFocus(modal)
+// loadAPICredentials loads the API authentication credentials for this module
+// First checks to see if they're in the config file. If not, checks the ENV var
+func (widget *Widget) loadAPICredentials() {
+	widget.APIKey = wtf.Config.UString(
+		"wtf.mods.weather.apiKey",
+		os.Getenv("WTF_OWM_API_KEY"),
+	)
 }

@@ -9,25 +9,42 @@ import (
 	"github.com/senorprogrammer/wtf/wtf"
 )
 
+const HelpText = `
+ Keyboard commands for Todoist:
+
+   /: Show/hide this help window
+   c: Close the selected item
+   d: Delete the selected item
+   h: Previous Todoist list
+   j: Select the next item in the list
+   k: Select the previous item in the list
+   l: Next Todoist list
+   r: Refresh the todo list data
+
+   arrow down: Select the next item in the list
+   arrow left: Previous Todoist list
+   arrow right: Next Todoist list
+   arrow up: Select the previous item in the list
+`
+
 type Widget struct {
+	wtf.HelpfulWidget
 	wtf.TextWidget
 
-	app      *tview.Application
-	pages    *tview.Pages
 	projects []*Project
 	idx      int
 }
 
 func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Todoist ", "todoist", true),
-
-		app:   app,
-		pages: pages,
+		HelpfulWidget: wtf.NewHelpfulWidget(app, pages, HelpText),
+		TextWidget:    wtf.NewTextWidget(app, "Todoist", "todoist", true),
 	}
 
-	todoist.Token = os.Getenv("WTF_TODOIST_TOKEN")
+	widget.loadAPICredentials()
 	widget.projects = loadProjects()
+
+	widget.HelpfulWidget.SetView(widget.View)
 	widget.View.SetInputCapture(widget.keyboardIntercept)
 
 	return &widget
@@ -70,7 +87,6 @@ func (w *Widget) Refresh() {
 		return
 	}
 
-	w.UpdateRefreshedAt()
 	w.display()
 }
 
@@ -120,6 +136,9 @@ func (w *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	}
 
 	switch string(event.Rune()) {
+	case "/":
+		w.ShowHelp()
+		return nil
 	case "r":
 		w.Refresh()
 		return nil
@@ -149,7 +168,13 @@ func (w *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	return event
 }
 
-// TODO: Rename this List to Projects so the internal can be Checklist
+func (widget *Widget) loadAPICredentials() {
+	todoist.Token = wtf.Config.UString(
+		"wtf.mods.todoist.apiKey",
+		os.Getenv("WTF_TODOIST_TOKEN"),
+	)
+}
+
 func loadProjects() []*Project {
 	projects := []*Project{}
 

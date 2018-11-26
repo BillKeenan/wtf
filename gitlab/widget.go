@@ -22,10 +22,8 @@ const HelpText = `
 `
 
 type Widget struct {
+	wtf.HelpfulWidget
 	wtf.TextWidget
-
-	app   *tview.Application
-	pages *tview.Pages
 
 	gitlab *glb.Client
 
@@ -34,18 +32,16 @@ type Widget struct {
 }
 
 func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
-	apiKey := os.Getenv("WTF_GITLAB_TOKEN")
 	baseURL := wtf.Config.UString("wtf.mods.gitlab.domain")
-	gitlab := glb.NewClient(nil, apiKey)
+	gitlab := glb.NewClient(nil, apiKey())
+
 	if baseURL != "" {
 		gitlab.SetBaseURL(baseURL)
 	}
 
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Gitlab ", "gitlab", true),
-
-		app:   app,
-		pages: pages,
+		HelpfulWidget: wtf.NewHelpfulWidget(app, pages, HelpText),
+		TextWidget:    wtf.NewTextWidget(app, "Gitlab", "gitlab", true),
 
 		gitlab: gitlab,
 
@@ -54,6 +50,7 @@ func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 
 	widget.GitlabProjects = widget.buildProjectCollection(wtf.Config.UMap("wtf.mods.gitlab.projects"))
 
+	widget.HelpfulWidget.SetView(widget.View)
 	widget.View.SetInputCapture(widget.keyboardIntercept)
 
 	return &widget
@@ -66,7 +63,6 @@ func (widget *Widget) Refresh() {
 		project.Refresh()
 	}
 
-	widget.UpdateRefreshedAt()
 	widget.display()
 }
 
@@ -89,6 +85,13 @@ func (widget *Widget) Prev() {
 }
 
 /* -------------------- Unexported Functions -------------------- */
+
+func apiKey() string {
+	return wtf.Config.UString(
+		"wtf.mods.gitlab.apiKey",
+		os.Getenv("WTF_GITLAB_TOKEN"),
+	)
+}
 
 func (widget *Widget) buildProjectCollection(projectData map[string]interface{}) []*GitlabProject {
 	gitlabProjects := []*GitlabProject{}
@@ -116,7 +119,7 @@ func (widget *Widget) currentGitlabProject() *GitlabProject {
 func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	switch string(event.Rune()) {
 	case "/":
-		widget.showHelp()
+		widget.ShowHelp()
 		return nil
 	case "h":
 		widget.Prev()
@@ -139,16 +142,4 @@ func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	default:
 		return event
 	}
-}
-
-func (widget *Widget) showHelp() {
-	closeFunc := func() {
-		widget.pages.RemovePage("help")
-		widget.app.SetFocus(widget.View)
-	}
-
-	modal := wtf.NewBillboardModal(HelpText, closeFunc)
-
-	widget.pages.AddPage("help", modal, false, true)
-	widget.app.SetFocus(modal)
 }

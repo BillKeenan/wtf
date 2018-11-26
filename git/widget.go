@@ -4,16 +4,20 @@ import (
 	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/wtf"
+	"io/ioutil"
+	"log"
+	"sort"
+	"strings"
 )
 
 const HelpText = `
   Keyboard commands for Git:
 
     /: Show/hide this help window
+    c: Checkout to branch
     h: Previous git repository
     l: Next git repository
-	p: Pull current git repository
-	c: Checkout to branch
+    p: Pull current git repository
 
     arrow left:  Previous git repository
     arrow right: Next git repository
@@ -24,23 +28,29 @@ const modalWidth = 80
 const modalHeight = 7
 
 type Widget struct {
+	wtf.HelpfulWidget
+	wtf.MultiSourceWidget
 	wtf.TextWidget
 
-	app   *tview.Application
-	Data  []*GitRepo
-	Idx   int
-	pages *tview.Pages
+	app      *tview.Application
+	GitRepos []*GitRepo
+	pages    *tview.Pages
 }
 
 func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Git ", "git", true),
+		HelpfulWidget:     wtf.NewHelpfulWidget(app, pages, HelpText),
+		MultiSourceWidget: wtf.NewMultiSourceWidget("git", "repository", "repositories"),
+		TextWidget:        wtf.NewTextWidget(app, "Git", "git", true),
 
 		app:   app,
-		Idx:   0,
 		pages: pages,
 	}
 
+	widget.LoadSources()
+	widget.SetDisplayFunction(widget.display)
+
+	widget.HelpfulWidget.SetView(widget.View)
 	widget.View.SetInputCapture(widget.keyboardIntercept)
 
 	return &widget
@@ -48,43 +58,12 @@ func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 
 /* -------------------- Exported Functions -------------------- */
 
-func (widget *Widget) Refresh() {
-	repoPaths := wtf.ToStrs(wtf.Config.UList("wtf.mods.git.repositories"))
-
-	widget.UpdateRefreshedAt()
-	widget.Data = widget.gitRepos(repoPaths)
-	widget.display()
-}
-
-func (widget *Widget) Next() {
-	widget.Idx = widget.Idx + 1
-	if widget.Idx == len(widget.Data) {
-		widget.Idx = 0
-	}
-
-	widget.display()
-}
-
-func (widget *Widget) Prev() {
-	widget.Idx = widget.Idx - 1
-	if widget.Idx < 0 {
-		widget.Idx = len(widget.Data) - 1
-	}
-
-	widget.display()
-}
-func (widget *Widget) Pull() {
-	repoToPull := widget.Data[widget.Idx]
-	repoToPull.pull()
-	widget.Refresh()
-
-}
 func (widget *Widget) Checkout() {
 	form := widget.modalForm("Branch to checkout:", "")
 
 	checkoutFctn := func() {
 		text := form.GetFormItem(0).(*tview.InputField).GetText()
-		repoToCheckout := widget.Data[widget.Idx]
+		repoToCheckout := widget.GitRepos[widget.Idx]
 		repoToCheckout.checkout(text)
 		widget.pages.RemovePage("modal")
 		widget.app.SetFocus(widget.View)
@@ -94,17 +73,36 @@ func (widget *Widget) Checkout() {
 
 	widget.addButtons(form, checkoutFctn)
 	widget.modalFocus(form)
+}
 
+func (widget *Widget) Pull() {
+	repoToPull := widget.GitRepos[widget.Idx]
+	repoToPull.pull()
+	widget.Refresh()
+
+}
+
+func (widget *Widget) Refresh() {
+	repoPaths := wtf.ToStrs(wtf.Config.UList("wtf.mods.git.repositories"))
+
+	widget.GitRepos = widget.gitRepos(repoPaths)
+	sort.Slice(widget.GitRepos, func(i, j int) bool {
+		return widget.GitRepos[i].Path < widget.GitRepos[j].Path
+	})
+	widget.display()
 }
 
 /* -------------------- Unexported Functions -------------------- */
+
 func (widget *Widget) addCheckoutButton(form *tview.Form, fctn func()) {
 	form.AddButton("Checkout", fctn)
 }
+
 func (widget *Widget) addButtons(form *tview.Form, checkoutFctn func()) {
 	widget.addCheckoutButton(form, checkoutFctn)
 	widget.addCancelButton(form)
 }
+
 func (widget *Widget) addCancelButton(form *tview.Form) {
 	cancelFn := func() {
 		widget.pages.RemovePage("modal")
@@ -115,6 +113,7 @@ func (widget *Widget) addCancelButton(form *tview.Form) {
 	form.AddButton("Cancel", cancelFn)
 	form.SetCancelFunc(cancelFn)
 }
+
 func (widget *Widget) modalFocus(form *tview.Form) {
 	frame := widget.modalFrame(form)
 	widget.pages.AddPage("modal", frame, false, true)
@@ -130,6 +129,7 @@ func (widget *Widget) modalForm(lbl, text string) *tview.Form {
 
 	return form
 }
+
 func (widget *Widget) modalFrame(form *tview.Form) *tview.Frame {
 	frame := tview.NewFrame(form).SetBorders(0, 0, 0, 0, 0, 0)
 	frame.SetRect(offscreen, offscreen, modalWidth, modalHeight)
@@ -148,32 +148,88 @@ func (widget *Widget) modalFrame(form *tview.Form) *tview.Frame {
 }
 
 func (widget *Widget) currentData() *GitRepo {
-	if len(widget.Data) == 0 {
+	if len(widget.GitRepos) == 0 {
 		return nil
 	}
 
-	if widget.Idx < 0 || widget.Idx >= len(widget.Data) {
+	if widget.Idx < 0 || widget.Idx >= len(widget.GitRepos) {
 		return nil
 	}
 
-	return widget.Data[widget.Idx]
+	return widget.GitRepos[widget.Idx]
 }
 
 func (widget *Widget) gitRepos(repoPaths []string) []*GitRepo {
 	repos := []*GitRepo{}
 
 	for _, repoPath := range repoPaths {
-		repo := NewGitRepo(repoPath)
-		repos = append(repos, repo)
+		if strings.HasSuffix(repoPath, "/") {
+			repos = append(repos, findGitRepositories(make([]*GitRepo, 0), repoPath)...)
+
+		} else {
+			repo := NewGitRepo(repoPath)
+			repos = append(repos, repo)
+		}
 	}
 
 	return repos
 }
 
+func findGitRepositories(repositories []*GitRepo, directory string) []*GitRepo {
+	directory = strings.TrimSuffix(directory, "/")
+
+	files, err := ioutil.ReadDir(directory)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var path string
+
+	for _, file := range files {
+		if file.IsDir() {
+			path = directory + "/" + file.Name()
+			if file.Name() == ".git" {
+				path = strings.TrimSuffix(path, "/.git")
+				repo := NewGitRepo(path)
+				repositories = append(repositories, repo)
+				continue
+			}
+			if file.Name() == "vendor" || file.Name() == "node_modules" {
+				continue
+			}
+			repositories = findGitRepositories(repositories, path)
+		}
+	}
+
+	return repositories
+}
+
+func (widget *Widget) Next() {
+	widget.Idx = widget.Idx + 1
+	if widget.Idx == len(widget.GitRepos) {
+		widget.Idx = 0
+	}
+
+	if widget.DisplayFunction != nil {
+		widget.DisplayFunction()
+	}
+}
+
+func (widget *Widget) Prev() {
+	widget.Idx = widget.Idx - 1
+	if widget.Idx < 0 {
+		widget.Idx = len(widget.GitRepos) - 1
+	}
+
+	if widget.DisplayFunction != nil {
+		widget.DisplayFunction()
+	}
+}
+
 func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	switch string(event.Rune()) {
 	case "/":
-		widget.showHelp()
+		widget.ShowHelp()
 		return nil
 	case "h":
 		widget.Prev()
@@ -199,16 +255,4 @@ func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
 	default:
 		return event
 	}
-}
-
-func (widget *Widget) showHelp() {
-	closeFunc := func() {
-		widget.pages.RemovePage("help")
-		widget.app.SetFocus(widget.View)
-	}
-
-	modal := wtf.NewBillboardModal(HelpText, closeFunc)
-
-	widget.pages.AddPage("help", modal, false, true)
-	widget.app.SetFocus(modal)
 }

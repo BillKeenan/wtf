@@ -32,8 +32,8 @@ func (widget *Widget) display() {
 	widget.mutex.Lock()
 	defer widget.mutex.Unlock()
 
-	_, timedEvents := widget.sortedEvents()
-	widget.View.SetText(widget.contentFrom(timedEvents))
+	widget.View.SetTitle(widget.ContextualTitle(widget.Name))
+	widget.View.SetText(widget.contentFrom(widget.calEvents))
 }
 
 func (widget *Widget) contentFrom(calEvents []*CalEvent) string {
@@ -44,8 +44,15 @@ func (widget *Widget) contentFrom(calEvents []*CalEvent) string {
 	var str string
 	var prevEvent *CalEvent
 
+	if !wtf.Config.UBool("wtf.mods.gcal.showDeclined", false) {
+		calEvents = removeDeclined(calEvents)
+	}
+
 	for _, calEvent := range calEvents {
 		timestamp := fmt.Sprintf("[%s]%s", widget.descriptionColor(calEvent), calEvent.Timestamp())
+		if calEvent.AllDay() {
+			timestamp = ""
+		}
 
 		title := fmt.Sprintf("[%s]%s",
 			widget.titleColor(calEvent),
@@ -83,7 +90,15 @@ func (widget *Widget) dayDivider(event, prevEvent *CalEvent) string {
 		prevStartTime = prevEvent.Start()
 	}
 
-	if event.Start().Day() != prevStartTime.Day() {
+	// round times to midnight for comparison
+	toMidnight := func(t time.Time) time.Time {
+		t = t.Local()
+		return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+	}
+	prevStartDay := toMidnight(prevStartTime)
+	eventStartDay := toMidnight(event.Start())
+
+	if !eventStartDay.Equal(prevStartDay) {
 
 		return fmt.Sprintf("[%s::b]",
 			wtf.Config.UString("wtf.mods.gcal.colors.day", "forestgreen")) +
@@ -97,9 +112,9 @@ func (widget *Widget) dayDivider(event, prevEvent *CalEvent) string {
 func (widget *Widget) descriptionColor(calEvent *CalEvent) string {
 	if calEvent.Past() {
 		return wtf.Config.UString("wtf.mods.gcal.colors.past", "gray")
-	} else {
-		return wtf.Config.UString("wtf.mods.gcal.colors.description", "white")
 	}
+
+	return wtf.Config.UString("wtf.mods.gcal.colors.description", "white")
 }
 
 func (widget *Widget) eventSummary(calEvent *CalEvent, conflict bool) string {
@@ -115,9 +130,9 @@ func (widget *Widget) eventSummary(calEvent *CalEvent, conflict bool) string {
 
 	if conflict {
 		return fmt.Sprintf("%s %s", wtf.Config.UString("wtf.mods.gcal.conflictIcon", "🚨"), summary)
-	} else {
-		return summary
 	}
+
+	return summary
 }
 
 // timeUntil returns the number of hours or days until the event
@@ -212,6 +227,14 @@ func (widget *Widget) responseIcon(calEvent *CalEvent) string {
 	default:
 		return icon + " "
 	}
+}
 
-	return " "
+func removeDeclined(events []*CalEvent) []*CalEvent {
+	var ret []*CalEvent
+	for _, e := range events {
+		if e.ResponseFor(wtf.Config.UString("wtf.mods.gcal.email")) != "declined" {
+			ret = append(ret, e)
+		}
+	}
+	return ret
 }

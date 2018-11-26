@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/olebedev/config"
+	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/cryptoexchanges/cryptolive/price"
 	"github.com/senorprogrammer/wtf/cryptoexchanges/cryptolive/toplist"
 	"github.com/senorprogrammer/wtf/wtf"
 )
-
-// Config is a pointer to the global config object
-var Config *config.Config
 
 // Widget define wtf widget to register widget later
 type Widget struct {
@@ -21,12 +18,9 @@ type Widget struct {
 }
 
 // NewWidget Make new instance of widget
-func NewWidget() *Widget {
-	price.Config = Config
-	toplist.Config = Config
-
+func NewWidget(app *tview.Application) *Widget {
 	widget := Widget{
-		TextWidget:    wtf.NewTextWidget(" CryptoLive ", "cryptolive", false),
+		TextWidget:    wtf.NewTextWidget(app, "CryptoLive", "cryptolive", false),
 		priceWidget:   price.NewWidget(),
 		toplistWidget: toplist.NewWidget(),
 	}
@@ -47,8 +41,6 @@ func (widget *Widget) Refresh() {
 	widget.priceWidget.Refresh(&wg)
 	widget.toplistWidget.Refresh(&wg)
 	wg.Wait()
-
-	widget.UpdateRefreshedAt()
 
 	display(widget)
 }

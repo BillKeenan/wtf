@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/adlio/trello"
+	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/wtf"
 )
 
@@ -12,9 +13,9 @@ type Widget struct {
 	wtf.TextWidget
 }
 
-func NewWidget() *Widget {
+func NewWidget(app *tview.Application) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" Trello ", "trello", false),
+		TextWidget: wtf.NewTextWidget(app, "Trello", "trello", false),
 	}
 
 	return &widget
@@ -23,11 +24,13 @@ func NewWidget() *Widget {
 /* -------------------- Exported Functions -------------------- */
 
 func (widget *Widget) Refresh() {
-	client := trello.NewClient(os.Getenv("WTF_TRELLO_APP_KEY"), os.Getenv("WTF_TRELLO_ACCESS_TOKEN"))
+	client := trello.NewClient(
+		widget.apiKey(),
+		widget.accessToken(),
+	)
 
 	// Get the cards
 	searchResult, err := GetCards(client, getLists())
-	widget.UpdateRefreshedAt()
 
 	var content string
 	if err != nil {
@@ -50,6 +53,21 @@ func (widget *Widget) Refresh() {
 }
 
 /* -------------------- Unexported Functions -------------------- */
+
+func (widget *Widget) accessToken() string {
+	return wtf.Config.UString(
+		"wtf.mods.trello.accessToken",
+		os.Getenv("WTF_TRELLO_ACCESS_TOKEN"),
+	)
+}
+
+func (widget *Widget) apiKey() string {
+	return wtf.Config.UString(
+		"wtf.mods.trello.apiKey",
+		os.Getenv("WTF_TRELLO_APP_KEY"),
+	)
+}
+
 func (widget *Widget) contentFrom(searchResult *SearchResult) string {
 	str := ""
 

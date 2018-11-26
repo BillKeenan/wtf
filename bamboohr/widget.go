@@ -3,6 +3,7 @@ package bamboohr
 import (
 	"fmt"
 
+	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/wtf"
 )
 
@@ -10,9 +11,9 @@ type Widget struct {
 	wtf.TextWidget
 }
 
-func NewWidget() *Widget {
+func NewWidget(app *tview.Application) *Widget {
 	widget := Widget{
-		TextWidget: wtf.NewTextWidget(" BambooHR ", "bamboohr", false),
+		TextWidget: wtf.NewTextWidget(app, "BambooHR", "bamboohr", false),
 	}
 
 	return &widget
@@ -28,8 +29,7 @@ func (widget *Widget) Refresh() {
 		wtf.Now().Format(wtf.DateFormat),
 	)
 
-	widget.UpdateRefreshedAt()
-	widget.View.SetTitle(fmt.Sprintf("%s (%d)", widget.Name, len(todayItems)))
+	widget.View.SetTitle(widget.ContextualTitle(widget.Name))
 
 	widget.View.SetText(widget.contentFrom(todayItems))
 }

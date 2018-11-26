@@ -14,13 +14,12 @@ import (
 type Widget struct {
 	wtf.TextWidget
 
-	app          *tview.Application
 	device_token string
 }
 
-func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
+func NewWidget(app *tview.Application) *Widget {
 	widget := Widget{
-		TextWidget:   wtf.NewTextWidget(" Blockfolio ", "blockfolio", false),
+		TextWidget:   wtf.NewTextWidget(app, "Blockfolio", "blockfolio", false),
 		device_token: wtf.Config.UString("wtf.mods.blockfolio.device_token"),
 	}
 
@@ -30,7 +29,6 @@ func NewWidget(app *tview.Application, pages *tview.Pages) *Widget {
 /* -------------------- Exported Functions -------------------- */
 
 func (widget *Widget) Refresh() {
-	widget.UpdateRefreshedAt()
 	widget.View.SetTitle(" Blockfolio ")
 
 	positions, err := Fetch(widget.device_token)

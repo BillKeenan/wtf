@@ -20,6 +20,8 @@ type BarGraph struct {
 	RefreshInt  int
 	View        *tview.TextView
 	starsCount  int
+	maxStars    int
+
 	Position
 
 	Data [][2]int64
@@ -72,8 +74,16 @@ func (widget *BarGraph) Focusable() bool {
 	return widget.enabled && widget.focusable
 }
 
+func (widget *BarGraph) FocusChar() string {
+	return ""
+}
+
 func (widget *BarGraph) RefreshInterval() int {
 	return widget.RefreshInt
+}
+
+func (widget *BarGraph) SetFocusChar(char string) {
+	return
 }
 
 func (widget *BarGraph) TextView() *tview.TextView {
@@ -81,10 +91,6 @@ func (widget *BarGraph) TextView() *tview.TextView {
 }
 
 /* -------------------- Unexported Functions -------------------- */
-
-func (widget *BarGraph) UpdateRefreshedAt() {
-	widget.RefreshedAt = time.Now()
-}
 
 func (widget *BarGraph) addView() {
 	view := tview.NewTextView()
