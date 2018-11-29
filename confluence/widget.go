@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os/exec"
 	"strings"
 
+	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
 	"github.com/senorprogrammer/wtf/logger"
 	"github.com/senorprogrammer/wtf/wtf"
@@ -24,7 +26,8 @@ const HelpText = `
 
 type Widget struct {
 	wtf.TextWidget
-
+	url     string
+	viewUrl string
 	// time interval for send http request
 	updateInterval int
 }
@@ -37,6 +40,7 @@ func NewWidget(app *tview.Application) *Widget {
 
 	widget.View.SetWrap(true)
 	widget.View.SetWordWrap(true)
+	widget.View.SetInputCapture(widget.keyboardIntercept)
 
 	return &widget
 }
@@ -58,9 +62,9 @@ func display(widget *Widget) {
 }
 
 // Extract all http** links from a given webpage
-func crawl(widget *Widget, url string, user string, pass string) {
+func crawl(widget *Widget, user string, pass string) {
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", widget.url, nil)
 	req.SetBasicAuth(user, pass)
 
 	req.Header.Set("Accept", "application/json")
@@ -71,7 +75,7 @@ func crawl(widget *Widget, url string, user string, pass string) {
 	resp, err := cli.Do(req)
 
 	if err != nil {
-		fmt.Println("ERROR: Failed to crawl \"" + url + "\"")
+		fmt.Println("ERROR: Failed to crawl \"" + widget.url + "\"")
 		return
 	}
 
@@ -196,10 +200,37 @@ func debug(data []byte, err error) {
 func main2(widget *Widget) {
 	logger.Log("getting confluence data")
 
-	urlToGet := wtf.Config.UString("wtf.mods.confluence.url", "")
+	widget.url = wtf.Config.UString("wtf.mods.confluence.url", "")
 	user := wtf.Config.UString("wtf.mods.confluence.user", "")
 	pass := wtf.Config.UString("wtf.mods.confluence.pass", "")
+	widget.viewUrl = wtf.Config.UString("wtf.mods.confluence.viewUrl", "")
 
-	crawl(widget, urlToGet, user, pass)
+	crawl(widget, user, pass)
+
+}
+
+func (widget *Widget) keyboardIntercept(event *tcell.EventKey) *tcell.EventKey {
+	logger.Log(event.Name())
+	logger.Log(fmt.Sprintf("%b", event.Name() == "Rune[r]"))
+
+	switch event.Key() {
+
+	case tcell.KeyEnter:
+		err := exec.Command("open", widget.viewUrl).Start()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	case tcell.KeyRune:
+		switch event.Name() {
+		case "Rune[r]":
+			widget.Refresh()
+		}
+	default:
+
+		// Pass it along
+	}
+
+	return event
 
 }
